@@ -12,7 +12,7 @@ function config(string $key, mixed $defaultValue): mixed
 {
     $keysInArray    = explode('.', $key);
     $configFileName = $keysInArray[0];
-    $value          = require_once (sprintf("config/%s.php", $configFileName));
+    $value          = require (sprintf("config/%s.php", $configFileName));
 
     for ($i = 1; $i < count($keysInArray); $i++) {
         $value = $value[$keysInArray[$i]] ?? $defaultValue;

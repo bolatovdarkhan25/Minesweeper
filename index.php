@@ -2,9 +2,10 @@
 
 use App\Map;
 
-const BOMB          = ' B ';
-const FLAG          = ' F ';
-const EMPTY_VALUE   = ' E ';
+const BOMB          = "\e[0;97;41m B \e[0m";
+const FLAG          = "\e[0;97;40m F \e[0m";
+const CLOSED_CELL   = "\e[0;97;107m   \e[0m";
+const EMPTY_CELL    = "\e[0;97;44m E \e[0m";
 const MARGIN_X      = "\n\n";
 const MARGIN_Y      = '    ';
 const ACTION_FLAG   = 'f';
@@ -43,6 +44,7 @@ while (true) {
 
     $input        = (string) readline('X, Y and action ("f", "u", "o") through a space: ');
     $inputArr     = explode(' ', $input);
+    $justOpened   = false;
 
     if (!isCorrectInput($inputArr, $map)) {
         print("Вы ввели неверные значения\n");
@@ -55,7 +57,7 @@ while (true) {
 
     if ($firstInput) {
         if ($action === ACTION_OPEN) {
-            $map->fillBombs($x, $y);
+            $map->fillBombsExceptGivenCoordinates($x, $y);
             $map->fillValues();
             $firstInput = false;
         }
@@ -71,20 +73,30 @@ while (true) {
             $cell->unflag();
             break;
         case ACTION_OPEN:
-            $cell->open();
+            if ($cell->getIsOpened() === false) {
+                $cell->open();
+                $justOpened = true;
+            }
     }
 
     if ($action === ACTION_OPEN) {
         if ($cell->getValue() === BOMB) {
             $won = false;
             $map->openAllBombs();
+        } elseif ($cell->getValue() === EMPTY_CELL && $justOpened === true) {
+            $openedCells += 1 + $map->openNeighboursOfCellAndReturnCountOfOpened($cell);
         } else {
-            $openedCells++;
+            if ($justOpened === true) {
+                $openedCells++;
+            } else {
+                $openedCells += $map->openNeighboursOfCellAndReturnCountOfOpened($cell);
+            }
         }
     }
 
     if ($openedCells === (count($map->getCells())) - $map->getBombsCount()) {
         $won = true;
+        $map->flagAllBombs();
     }
 
     leaveSpace();

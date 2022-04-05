@@ -26,14 +26,20 @@ class Map
      */
     private array $cells;
 
+    /**
+     * @var array[]
+     */
+    private array $bombsPositions;
+
     private static bool $mapCreated = false;
 
     public function __construct()
     {
-        $this->width      = config('app.map.width', 8);
-        $this->length     = config('app.map.length', 8);
-        $this->bombsCount = config('app.map.bombs_count', 8);
-        $this->cells      = [];
+        $this->width          = config('app.map.width', 8);
+        $this->length         = config('app.map.length', 8);
+        $this->bombsCount     = config('app.map.bombs_count', 8);
+        $this->cells          = [];
+        $this->bombsPositions = [[]];
     }
 
     public function getWidth(): int
@@ -79,30 +85,28 @@ class Map
         }
     }
 
-    private function generateBombsPositions(int $coordinateX, int $coordinateY): array
+    private function generateBombsPositions(int $coordinateX, int $coordinateY): void
     {
-        $bombsPositions = [];
+        $i = 0;
+        while (count($this->bombsPositions) < $this->bombsCount) {
+            $x = rand(min: 0, max: $this->width - 1);
+            $y = rand(min: 0, max: $this->length - 1);
 
-        while (count($bombsPositions) < $this->bombsCount) {
-            $x = rand(0, $this->width - 1);
-            $y = rand(0, $this->length - 1);
-
-            if (($x === $coordinateX && $y === $coordinateY) || in_array(['x' => $x, 'y' => $y], $bombsPositions)) {
+            if (($x === $coordinateX && $y === $coordinateY) || in_array(['x' => $x, 'y' => $y], $this->bombsPositions)) {
                 continue;
             }
 
-            $bombsPositions[] = ['x' => $x, 'y' => $y];
+            $this->bombsPositions[$i] = ['x' => $x, 'y' => $y];
+            $i++;
         }
-
-        return $bombsPositions;
     }
 
-    public function fillBombs(int $coordinateX, int $coordinateY): void
+    public function fillBombsExceptGivenCoordinates(int $coordinateX, int $coordinateY): void
     {
-        $bombsPositions = $this->generateBombsPositions($coordinateX, $coordinateY);
+        $this->generateBombsPositions(coordinateX: $coordinateX, coordinateY: $coordinateY);
 
-        foreach ($bombsPositions as $bombPosition) {
-            $cell = $this->getCellByCoordinates($bombPosition['x'], $bombPosition['y']);
+        foreach ($this->bombsPositions as $bombPosition) {
+            $cell = $this->getCellByCoordinates(x: $bombPosition['x'], y: $bombPosition['y']);
             $cell->setValue(BOMB);
         }
     }
@@ -139,32 +143,97 @@ class Map
                 continue;
             } else {
                 $neighboringCellsCoordinates = $this->getNeighboringCellsCoordinates(
-                    $cell->getCoordinateX(),
-                    $cell->getCoordinateY()
+                    x: $cell->getCoordinateX(),
+                    y: $cell->getCoordinateY()
                 );
 
                 $neighboringBombsCount = 0;
 
                 foreach ($neighboringCellsCoordinates as $cellCoordinate) {
-                    if ($this->getCellByCoordinates($cellCoordinate['x'], $cellCoordinate['y'])->getValue() === BOMB) {
+                    if ($this->getCellByCoordinates(x: $cellCoordinate['x'], y: $cellCoordinate['y'])->getValue() === BOMB) {
                         $neighboringBombsCount++;
                     }
                 }
 
-                $cell->setValue(' ' . $neighboringBombsCount . ' ');
+                if ($neighboringBombsCount === 0) {
+                    $cell->setValue(EMPTY_CELL);
+                } else {
+                    $cell->setValue(value: "\e[0;97;100m " . $neighboringBombsCount . " \e[0m");
+                }
             }
         }
     }
 
     public function openAllBombs(): void
     {
-        $this->cells = array_map(function ($cell) {
-            if ($cell->getValue() === BOMB) {
-                $cell->open();
-            }
+        foreach ($this->bombsPositions as $bombsPosition) {
+            $cell = $this->getCellByCoordinates(x: $bombsPosition['x'], y: $bombsPosition['y']);
+            $cell->open();
+        }
+    }
 
-            return $cell;
-        }, $this->cells);
+    #[Pure]
+    private function getHasNeighbouringFlaggedCells(array $neighboringCellsCoordinates): bool
+    {
+        $hasFlaggedNeighbours = false;
+        foreach ($neighboringCellsCoordinates as $neighboringCellCoordinate) {
+            $cell = $this->getCellByCoordinates(x: $neighboringCellCoordinate['x'], y: $neighboringCellCoordinate['y']);
+            if ($cell->getIsFlagged() === true) {
+                $hasFlaggedNeighbours = true;
+                break;
+            }
+        }
+
+        return $hasFlaggedNeighbours;
+    }
+
+    public function openNeighboursOfCellAndReturnCountOfOpened(Cell $currentCell): int
+    {
+        if ($currentCell->getIsOpened() === false) {
+            return 0;
+        }
+
+        $countOfOpened                     = 0;
+        $neighboringCellsCoordinates       = $this->getNeighboringCellsCoordinates(
+            x: $currentCell->getCoordinateX(),
+            y: $currentCell->getCoordinateY()
+        );
+        $emptyNeighbouringCellsCoordinates = [];
+
+        if (
+            $currentCell->getValue() !== EMPTY_CELL &&
+            $this->getHasNeighbouringFlaggedCells($neighboringCellsCoordinates) === false
+        ) {
+            return 0;
+        }
+
+        foreach ($neighboringCellsCoordinates as $neighboringCellCoordinate) {
+            $cell = $this->getCellByCoordinates(x: $neighboringCellCoordinate['x'], y: $neighboringCellCoordinate['y']);
+            if ($cell->getIsOpened() === false && $cell->getIsFlagged() === false) {
+                $cell->open();
+                $countOfOpened++;
+
+                if ($cell->getValue() === EMPTY_CELL) {
+                    $emptyNeighbouringCellsCoordinates[] = ['x' => $cell->getCoordinateX(), 'y' => $cell->getCoordinateY()];
+                }
+            }
+        }
+
+        foreach ($emptyNeighbouringCellsCoordinates as $emptyNeighbouringCellCoordinate) {
+            $countOfOpened += $this->openNeighboursOfCellAndReturnCountOfOpened(
+                $this->getCellByCoordinates(x: $emptyNeighbouringCellCoordinate['x'], y: $emptyNeighbouringCellCoordinate['y'])
+            );
+        }
+
+        return $countOfOpened;
+    }
+
+    public function flagAllBombs(): void
+    {
+        foreach ($this->bombsPositions as $bombsPosition) {
+            $cell = $this->getCellByCoordinates(x: $bombsPosition['x'], y: $bombsPosition['y']);
+            $cell->flag();
+        }
     }
 
     // Front-end кетти уже мына жакта :D
@@ -172,34 +241,19 @@ class Map
     {
         for ($i = 0; $i < $this->width; $i++) {
             for ($j = 0; $j < $this->length; $j++) {
-                $cell = $this->getCellByCoordinates($i, $j);
+                $cell = $this->getCellByCoordinates(x: $i, y: $j);
 
                 if ($cell->getIsOpened() === true) {
                     $mapValue = $cell->getValue();
                 } elseif ($cell->getIsFlagged() === true) {
                     $mapValue = FLAG;
                 } else {
-                    $mapValue = EMPTY_VALUE;
+                    $mapValue = CLOSED_CELL;
                 }
 
-                $coloredMapValue = $this->setColorForPrint($mapValue);
-
-                print($coloredMapValue . MARGIN_Y);
+                print($mapValue . MARGIN_Y);
             }
             print(MARGIN_X);
         }
-    }
-
-    private function setColorForPrint(string $value): string
-    {
-        if ($value === BOMB) {
-            $value = "\e[0;31;41m   \e[0m";
-        } elseif ($value === FLAG) {
-            $value = "\e[0;30;40m   \e[0m";
-        } elseif ($value === ' 0 ') {
-            $value = "\e[0;34;44m   \e[0m";
-        }
-
-        return $value;
     }
 }

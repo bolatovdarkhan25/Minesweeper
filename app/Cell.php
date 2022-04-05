@@ -12,7 +12,7 @@ class Cell
 
     public function __construct(int $coordinateX, int $coordinateY)
     {
-        $this->value       = EMPTY_VALUE;
+        $this->value       = CLOSED_CELL;
         $this->isFlagged   = false;
         $this->coordinateX = $coordinateX;
         $this->coordinateY = $coordinateY;
