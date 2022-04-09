@@ -12,7 +12,7 @@ class Cell
 
     public function __construct(int $coordinateX, int $coordinateY)
     {
-        $this->value       = CLOSED_CELL;
+        $this->value       = CELL_CLOSED;
         $this->isFlagged   = false;
         $this->coordinateX = $coordinateX;
         $this->coordinateY = $coordinateY;
@@ -73,11 +73,17 @@ class Cell
         $this->isOpened = $isOpened;
     }
 
-    public function open(): void
+    public function open(bool $byForce): bool
     {
-        if ($this->isFlagged === true) {
-            $this->unflag();
+        if ($byForce === true) {
+            $this->setIsFlagged(false);
+            $this->setIsOpened(true);
+            return true;
+        } elseif ($this->isOpened === false && $this->isFlagged === false) {
+            $this->setIsOpened(true);
+            return true;
+        } else {
+            return false;
         }
-        $this->setIsOpened(true);
     }
 }
