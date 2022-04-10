@@ -2,6 +2,9 @@
 
 namespace App;
 
+/**
+ * Class Game
+ */
 class Game
 {
     /**
@@ -110,7 +113,7 @@ class Game
      */
     public function play()
     {
-        $this->map->buildMap();
+        $this->map->build();
         $this->map->showMap();
 
         while ($this->isGameOver() === false) {
@@ -141,7 +144,7 @@ class Game
                     $this->openingActions(cell: $cell, input: $input);
                     break;
                 default:
-                    $this->endGame(false); // TODO logger надо поставить
+                    $this->endGame(false);
             }
 
             if ($this->getOpenedCellsCount() === (count($this->map->getCells()) - $this->map->getBombsCount())) {
@@ -152,6 +155,11 @@ class Game
         }
     }
 
+    /**
+     * @param Cell $cell
+     * @param Input $input
+     * @return void
+     */
     private function openingActions(Cell $cell, Input $input)
     {
         $justOpened = $cell->open(byForce: false);
@@ -180,6 +188,10 @@ class Game
         }
     }
 
+    /**
+     * @param Input $input
+     * @return void
+     */
     private function firstInputPassed(Input $input)
     {
         if ($input->getAction() === $input::ACTION_OPEN) {
@@ -189,6 +201,10 @@ class Game
         }
     }
 
+    /**
+     * @param bool $won
+     * @return void
+     */
     private function endGame(bool $won)
     {
         $this->setWon($won);

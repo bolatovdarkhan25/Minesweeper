@@ -4,6 +4,9 @@ namespace App;
 
 use JetBrains\PhpStorm\Pure;
 
+/**
+ * Class Map
+ */
 class Map
 {
     const MARGIN_X      = "\n\n";
@@ -37,8 +40,11 @@ class Map
     /**
      * @var bool
      */
-    private static bool $mapCreated = false;
+    private bool $mapBuilt;
 
+    /**
+     * No params
+     */
     public function __construct()
     {
         $this->width          = config('app.map.width', 8);
@@ -46,6 +52,7 @@ class Map
         $this->bombsCount     = config('app.map.bombs_count', 8);
         $this->cells          = [];
         $this->bombsPositions = [[]];
+        $this->mapBuilt       = false;
     }
 
     /**
@@ -80,6 +87,11 @@ class Map
         return $this->cells;
     }
 
+    private function pushToCells(Cell $cell): void
+    {
+        $this->cells[] = $cell;
+    }
+
     /**
      * @return void
      */
@@ -87,7 +99,7 @@ class Map
     {
         for ($i = 0; $i < $this->width; $i++) {
             for ($j = 0; $j < $this->length; $j++) {
-                $this->cells[] = new Cell($i, $j);
+                $this->pushToCells(new Cell($i, $j));
             }
         }
     }
@@ -106,11 +118,11 @@ class Map
     /**
      * @return void
      */
-    public function buildMap(): void
+    public function build(): void
     {
-        if (static::$mapCreated === false) {
+        if ($this->mapBuilt === false) {
             $this->fillCellsInitially();
-            static::$mapCreated = true;
+            $this->mapBuilt = true;
         }
     }
 
@@ -239,6 +251,10 @@ class Map
         return $hasFlaggedNeighbours;
     }
 
+    /**
+     * @param Cell $currentCell
+     * @return int
+     */
     public function openNeighboursOfEmptyCellAndReturnTheirCount(Cell $currentCell): int
     {
         $countOfOpened = 0;

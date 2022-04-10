@@ -4,6 +4,9 @@ namespace App;
 
 use JetBrains\PhpStorm\Pure;
 
+/**
+ * Class Input
+ */
 class Input
 {
     const ACTION_FLAG   = 'f';
@@ -51,14 +54,6 @@ class Input
     }
 
     /**
-     * @param int $inputX
-     */
-    public function setInputX(int $inputX): void
-    {
-        $this->inputX = $inputX;
-    }
-
-    /**
      * @return int
      */
     public function getInputY(): int
@@ -67,27 +62,11 @@ class Input
     }
 
     /**
-     * @param int $inputY
-     */
-    public function setInputY(int $inputY): void
-    {
-        $this->inputY = $inputY;
-    }
-
-    /**
      * @return string
      */
     public function getAction(): string
     {
         return $this->action;
-    }
-
-    /**
-     * @param string $action
-     */
-    public function setAction(string $action): void
-    {
-        $this->action = $action;
     }
 
     /**

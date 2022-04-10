@@ -16,7 +16,7 @@ require_once 'helpers.php';
 $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
 $dotenv->load();
 
-$map   = new Map(); // In the feature going to add map size modification
+$map   = new Map(); // In the future going to add map size modification
 $game  = new Game($map);
 
 $game->play();
@@ -26,5 +26,3 @@ if ($game->isWon() === false) {
 } else {
     print "YOU WIN :ɔ\n";
 }
-
-// TODO протестить и убрать лишние функции
